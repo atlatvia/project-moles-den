@@ -9,9 +9,11 @@ from folium.plugins import Draw
 from streamlit_folium import st_folium
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from fpdf import FPDF
+import io
 
 # 1. Configuración de página y Estilos CSS (Modo Oscuro Premium)
-st.set_page_config(page_title="Planificador Urbano con IA v.1.3", layout="wide", page_icon="🏗️")
+st.set_page_config(page_title="Planificador Urbano con IA v.1.5", layout="wide", page_icon="🏗️")
 
 st.markdown("""
     <style>
@@ -25,10 +27,11 @@ st.markdown("""
         margin-bottom: 20px;
     }
     .metric-value { font-size: 24px; font-weight: bold; color: #38bdf8; }
+    .obligation-box { border-left: 4px solid #facc15; padding-left: 10px; margin-top: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Inicialización estricta de Estados de Sesión (Evita pérdidas de memoria de variables)
+# 2. Inicialización estricta de Estados de Sesión
 if "area_dibujada" not in st.session_state:
     st.session_state.area_dibujada = 0.0
 if "area_terreno_val" not in st.session_state:
@@ -36,7 +39,7 @@ if "area_terreno_val" not in st.session_state:
 if "usar_mapa" not in st.session_state:
     st.session_state.usar_mapa = False
 
-# 3. Motores de Carga de Información
+# 3. Funciones de Carga y Soporte
 @st.cache_data
 def cargar_bases_datos():
     try:
@@ -90,6 +93,119 @@ def calcular_area_poligono(coordinates):
         area -= puntos_utm[j][0] * puntos_utm[i][1]
     return abs(area) / 2.0
 
+def crear_reporte_pdf(municipio, categoria, clave, area, niveles, regla, viv_brutas, viv_netas, area_desplante, area_max_const, don_mun, don_est, cajones, area_verde, aprovechamiento):
+    """Genera un reporte PDF integrando las obligaciones urbanas."""
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Encabezado Corporativo
+    pdf.set_fill_color(15, 23, 42)
+    pdf.rect(0, 0, 210, 38, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.set_xy(15, 10)
+    pdf.cell(0, 10, "DICTAMEN TECNICO NORMATIVO", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_x(15)
+    pdf.cell(0, 5, "Analisis de Compatibilidad y Obligaciones - Libro Quinto", ln=True)
+    
+    # Estatus
+    pdf.set_y(48)
+    pdf.set_fill_color(240, 253, 244)
+    pdf.set_draw_color(187, 247, 208)
+    pdf.rect(15, 45, 180, 18, "DF")
+    pdf.set_xy(18, 47)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(22, 101, 52)
+    pdf.cell(0, 5, "PROYECTO VIABLE", ln=True)
+    pdf.set_x(18)
+    pdf.set_font("Helvetica", "", 9.5)
+    pdf.cell(0, 5, "El analisis geometrico indica cumplimiento de lineamientos.", ln=True)
+    
+    # Sección 1
+    pdf.set_text_color(30, 41, 59)
+    pdf.set_y(70)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 7, "1. Datos Generales del Predio", ln=True)
+    pdf.line(15, 77, 195, 77)
+    pdf.ln(3)
+    
+    pdf.set_font("Helvetica", "", 10)
+    datos = [
+        [f"Municipio: {municipio}", f"Categoria: {categoria}"],
+        [f"Clave: {clave}", f"Area Terreno: {area:,.2f} m2"],
+        [f"Niveles Proyectados: {niveles}", f"Eficiencia (Aprovechamiento): {aprovechamiento}%"]
+    ]
+    for fila in datos:
+        pdf.set_x(15)
+        pdf.cell(90, 8, fila[0], border=1)
+        pdf.cell(90, 8, fila[1], border=1, ln=True)
+        
+    # Sección 2: Parámetros y Geometría
+    pdf.ln(8)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 7, "2. Evaluacion Geometrica y Constructiva", ln=True)
+    pdf.line(15, 112, 195, 112)
+    pdf.ln(3)
+    
+    pdf.set_x(15)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_fill_color(241, 245, 249)
+    pdf.cell(50, 8, "Parametro", border=1, fill=True)
+    pdf.cell(45, 8, "Norma", border=1, fill=True)
+    pdf.cell(45, 8, "Proyecto", border=1, fill=True)
+    pdf.cell(40, 8, "Estatus", border=1, fill=True, ln=True)
+    
+    pdf.set_font("Helvetica", "", 9)
+    t_bruto = regla.get("terreno_bruto_m2", "NP")
+    cos_p = regla.get("porcentaje_max_desplante_cos", "NP")
+    cus_m = regla.get("numero_veces_area_predio_cus", "NP")
+    
+    filas_norma = [
+        ["Lote Minimo", f"{t_bruto} m2", f"{area:,.2f} m2", "Cumple"],
+        ["Viviendas Brutas / Netas", f"Max. {viv_brutas}", f"{viv_netas} Proyectadas", f"Al {aprovechamiento}%"],
+        ["Huella (COS)", f"{cos_p}%", f"{area_desplante:,.2f} m2", "Dentro de Limite"],
+        ["Construccion (CUS)", f"x{cus_m}", f"{area_max_const:,.2f} m2", "Dentro de Limite"]
+    ]
+    for row in filas_norma:
+        pdf.set_x(15)
+        pdf.cell(50, 8, row[0], border=1)
+        pdf.cell(45, 8, row[1], border=1)
+        pdf.cell(45, 8, row[2], border=1)
+        pdf.cell(40, 8, row[3], border=1, ln=True)
+        
+    # Sección 3: Obligaciones Urbanas (La nueva lógica del Excel)
+    pdf.ln(8)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.cell(0, 7, "3. Obligaciones Urbanas y Cesiones (Libro Quinto)", ln=True)
+    pdf.line(15, 155, 195, 155)
+    pdf.ln(3)
+    
+    pdf.set_font("Helvetica", "", 9.5)
+    filas_obligaciones = [
+        ["Area Verde Requerida:", f"{area_verde:,.2f} m2 (12 m2 por vivienda)"],
+        ["Donacion Municipal (15 m2/viv):", f"{don_mun:,.2f} m2"],
+        ["Donacion Estatal (5 m2/viv):", f"{don_est:,.2f} m2"],
+        ["Total Areas de Cesion:", f"{don_mun + don_est:,.2f} m2"],
+        ["Estacionamiento Exigido:", f"{cajones} cajones (1 por cada 4 viv.)"],
+        ["Infraestructura Adicional:", "1 Lote PTAR | 1 Lote Tanque Agua"]
+    ]
+    for row in filas_obligaciones:
+        pdf.set_x(15)
+        pdf.cell(70, 7, row[0], border=0)
+        pdf.set_font("Helvetica", "B", 9.5)
+        pdf.cell(110, 7, row[1], border=0, ln=True)
+        pdf.set_font("Helvetica", "", 9.5)
+        
+    pdf.ln(10)
+    pdf.set_x(15)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(148, 163, 184)
+    pdf.multi_cell(180, 4, "Exencion de Responsabilidad: Memoria de calculo algoritmica basada en el Libro Quinto. No sustituye licencias oficiales.")
+    
+    return pdf.output()
+
 USOS_SUELO_EDOMEX = cargar_bases_datos()
 
 # 4. Panel Lateral de Parámetros
@@ -104,7 +220,6 @@ categoria_sel = st.sidebar.selectbox("🏙️ Categoría de Uso", categorias_dis
 claves_disp = list(USOS_SUELO_EDOMEX[municipio_sel][categoria_sel].keys())
 uso_sel = st.sidebar.selectbox("🏷️ Clave de Uso de Suelo", claves_disp)
 
-# Sincronizador de área interactiva por Callbacks de Streamlit
 if st.session_state.area_dibujada > 0:
     st.sidebar.info(f"📐 Área calculada en mapa: {st.session_state.area_dibujada:,.2f} m²")
     
@@ -117,9 +232,17 @@ if st.session_state.area_dibujada > 0:
 
     st.sidebar.checkbox("Usar la medida del mapa", key="chk_usar_mapa", value=st.session_state.usar_mapa, on_change=trigger_toggle)
 
-# Input numérico con llave estática persistente (Resuelve el bug de los 300m² fijos)
 area_terreno = st.sidebar.number_input("📏 Área del Terreno (m²)", min_value=1.0, step=50.0, key="area_terreno_val")
 niveles_proyectados = st.sidebar.number_input("🏢 Niveles a Construir", min_value=1, value=2, step=1)
+
+# --- NUEVO: SLIDER DE APROVECHAMIENTO (LÓGICA DEL EXCEL) ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Eficiencia del Proyecto")
+aprovechamiento = st.sidebar.slider(
+    "Factor de Aprovechamiento (%)", 
+    min_value=10, max_value=100, value=80, step=5,
+    help="Representa el % real de terreno vendible descontando vialidades internas y restricciones. (En tu tabla Excel se asume 80%)"
+)
 
 st.sidebar.markdown("---")
 tipo_coordenada = st.sidebar.radio("Centrar mapa por:", ["Centroide Municipal", "Geográficas", "UTM"])
@@ -153,21 +276,17 @@ with col_calc:
     st.subheader(f"Ubicación Analizada: {municipio_sel}")
     st.caption("💡 Selecciona la figura de polígono (⬡) en el mapa para delimitar las dimensiones de tu predio.")
 
-    # Renderizado ÚNICO de Folium (Aquí se eliminó por completo el viejo st.map alterno)
     folium_map = folium.Map(location=[map_lat, map_lon], zoom_start=zoom_level, control_scale=True)
     
     draw_plugin = Draw(
-        export=False,
-        position='topleft',
+        export=False, position='topleft',
         draw_options={'polyline': False, 'circle': False, 'marker': False, 'circlemarker': False, 'rectangle': True, 'polygon': True},
         edit_options={'remove': True}
     )
     draw_plugin.add_to(folium_map)
 
-    # Captura del render
     map_output = st_folium(folium_map, width="100%", height=400, key="interactive_map_engine")
 
-    # Guard de control de ciclo infinito: Compara valores antes de disparar recargas de render
     if map_output and map_output.get("last_active_drawing"):
         drawing_geometry = map_output["last_active_drawing"]["geometry"]
         if drawing_geometry["type"] == "Polygon":
@@ -180,9 +299,8 @@ with col_calc:
                     st.session_state.area_terreno_val = calculated_meters
                 st.rerun()
 
-    # Contenedor de Análisis Estadístico Metropolitano
     st.markdown('<div class="glass-container">', unsafe_allow_html=True)
-    st.subheader(f"📊 Análisis Normativo utilizando: {area_terreno:,.2f} m²")
+    st.subheader(f"📊 Análisis y Viabilidad ({area_terreno:,.2f} m²)")
     
     t_bruto = regla.get("terreno_bruto_m2", "NP")
     cos_porc = regla.get("porcentaje_max_desplante_cos", "NP")
@@ -191,30 +309,66 @@ with col_calc:
 
     if isinstance(t_bruto, (int, float)) and isinstance(cos_porc, (int, float)) and isinstance(cus_mult, (int, float)):
         if area_terreno < t_bruto:
-            st.error(f"❌ **Terreno insuficiente:** Tu área ({area_terreno:,.2f} m²) es menor al Lote Mínimo exigido ({t_bruto} m²). No es posible desarrollar este predio bajo esta normatividad.")
+            st.error(f"❌ **Terreno insuficiente:** Tu área ({area_terreno:,.2f} m²) es menor al Lote Mínimo exigido ({t_bruto} m²).")
         elif isinstance(niveles_max, (int, float)) and niveles_proyectados > niveles_max:
-            st.error(f"❌ **Niveles excedidos:** Tienes proyectados {niveles_proyectados} niveles, pero la norma solo permite un máximo de {niveles_max} niveles para la clave {uso_sel}.")
+            st.error(f"❌ **Niveles excedidos:** Proyectas {niveles_proyectados} niveles, pero la norma permite un máximo de {niveles_max}.")
         else:
-            total_viviendas = math.floor(area_terreno / t_bruto)
+            # --- NUEVA LÓGICA MATEMÁTICA DEL EXCEL ---
+            viviendas_brutas = math.floor(area_terreno / t_bruto)
+            viviendas_netas = math.floor(viviendas_brutas * (aprovechamiento / 100.0))
+            
+            donacion_municipal = viviendas_netas * 15
+            donacion_estatal = viviendas_netas * 5
+            cajones_estacionamiento = math.ceil(viviendas_netas / 4)
+            area_verde_req = viviendas_netas * 12
+            
             area_desplante = area_terreno * (cos_porc / 100)
             area_construccion_max = area_terreno * cus_mult
 
             c1, c2, c3 = st.columns(3)
             c1.metric("Lote Mínimo", f"{t_bruto} m²")
-            c2.metric("Viviendas Máximas", f"{total_viviendas} viv.")
-            c3.metric("Niveles Máximos", f"{niveles_max}")
+            c2.metric("Viv. Brutas (100%)", f"{viviendas_brutas}")
+            c3.metric(f"Viv. Netas ({aprovechamiento}%)", f"{viviendas_netas}")
 
             st.write("---")
-            st.success("✅ **Proyecto Viable. Parámetros máximos de construcción:**")
-            st.write(f"🔹 **Área de Desplante Máxima (COS al {cos_porc}%):** {area_desplante:,.2f} m²")
-            st.write(f"🔹 **Área de Construcción Total Máxima (CUS {cus_mult}):** {area_construccion_max:,.2f} m²")
+            st.success("✅ **Geometría del Proyecto Viable:**")
+            st.write(f"🔹 **Huella de Desplante (COS {cos_porc}%):** {area_desplante:,.2f} m²")
+            st.write(f"🔹 **Construcción Total (CUS {cus_mult}):** {area_construccion_max:,.2f} m²")
             
             area_proyectada = area_desplante * niveles_proyectados
             if area_proyectada > area_construccion_max:
-                st.warning(f"⚠️ **Alerta Geométrica:** Si construyes {niveles_proyectados} niveles ocupando todo el desplante ({area_desplante:,.2f} m² por piso), llegarás a {area_proyectada:,.2f} m², lo cual excede tu CUS permitido. Deberás reducir la huella de los pisos superiores.")
+                st.warning(f"⚠️ **Alerta:** Con {niveles_proyectados} niveles ocupando todo el desplante, excedes el CUS permitido.")
+            
+            # --- PANEL DE OBLIGACIONES Y CESIONES ---
+            st.markdown('<div class="obligation-box">', unsafe_allow_html=True)
+            st.markdown("#### 🌳 Obligaciones y Cesiones (Libro Quinto)")
+            col_o1, col_o2, col_o3 = st.columns(3)
+            col_o1.metric("Donaciones (Mun+Est)", f"{donacion_municipal + donacion_estatal:,.0f} m²", f"M: {donacion_municipal} | E: {donacion_estatal}")
+            col_o2.metric("Estacionamiento", f"{cajones_estacionamiento} Cajones", "50% Chicos | 50% Grandes")
+            col_o3.metric("Área Verde Exigida", f"{area_verde_req:,.0f} m²", "12 m² por vivienda")
+            st.caption("ℹ️ *Se asume equipamiento de 1 Lote PTAR y 1 Lote para Tanque de Agua por desarrollo.*")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # --- BOTÓN DE DESCARGA PDF ---
+            st.write("")
+            try:
+                pdf_bytes = crear_reporte_pdf(
+                    municipio_sel, categoria_sel, uso_sel, area_terreno, niveles_proyectados,
+                    regla, viviendas_brutas, viviendas_netas, area_desplante, area_construccion_max,
+                    donacion_municipal, donacion_estatal, cajones_estacionamiento, area_verde_req, aprovechamiento
+                )
+                st.download_button(
+                    label="📥 Descargar Dictamen Integral (PDF)",
+                    data=bytes(pdf_bytes),
+                    file_name=f"Dictamen_{municipio_sel}_{uso_sel}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            except Exception as e:
+                st.error(f"No se pudo compilar el PDF: {e}")
+                
     else:
-        st.warning("⚠️ **Atención:** Los parámetros para esta clave están catalogados como 'No Permitidos' (NP) o requieren 'Dictamen Técnico' (DT).")
-        st.write(f"- Terreno Bruto: {t_bruto} | - COS: {cos_porc} | - CUS: {cus_mult} | - Niveles: {niveles_max}")
+        st.warning("⚠️ **Atención:** Parámetros catalogados como 'No Permitidos' (NP) o requieren 'Dictamen Técnico' (DT).")
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -225,7 +379,7 @@ with col_legal:
 
     motor = cargar_motor_busqueda()
     if motor is None:
-        st.error("No se pudo cargar el asistente IA. Asegúrate de tener la carpeta 'indice_normativo_completo'.")
+        st.error("No se pudo cargar el asistente IA. Faltan los índices de FAISS.")
     else:
         if "mensajes" not in st.session_state:
             st.session_state.mensajes = []
@@ -234,7 +388,7 @@ with col_legal:
             with st.chat_message(msg["rol"]):
                 st.markdown(msg["contenido"])
 
-        pregunta = st.chat_input("Ej. ¿Cuál es la restricción para corredores urbanos?")
+        pregunta = st.chat_input("Ej. ¿Cuántos cajones de estacionamiento necesito?")
 
         if pregunta:
             with st.chat_message("user"):
@@ -246,6 +400,6 @@ with col_legal:
             with st.chat_message("assistant"):
                 st.markdown("**Artículos más relevantes encontrados:**")
                 for doc in documentos_encontrados:
-                    fuente = doc.metadata.get("origen", "Libro Quinto - Sección Administrativa")
+                    fuente = doc.metadata.get("origen", "Libro Quinto")
                     st.success(f"📄 **{fuente}**\n\n{doc.page_content}")
             st.session_state.mensajes.append({"rol": "assistant", "contenido": "Búsqueda completada."})
