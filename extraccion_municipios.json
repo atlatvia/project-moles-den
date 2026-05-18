@@ -1,0 +1,271 @@
+{
+  "Metepec": {
+    "Habitacional Fraccionamientos Autorizados": {
+      "H.100": {
+        "terreno_bruto_m2": 100,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 80,
+        "niveles_max_construccion": 2,
+        "numero_veces_area_predio_cus": 1.6
+      },
+      "H.200": {
+        "terreno_bruto_m2": 200,
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 80,
+        "niveles_max_construccion": 2,
+        "numero_veces_area_predio_cus": 1.6
+      },
+      "H.300": {
+        "terreno_bruto_m2": 300,
+        "terreno_neto_m2": 180,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.400": {
+        "terreno_bruto_m2": 400,
+        "terreno_neto_m2": 240,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      }
+    },
+    "Habitacional con Mezcla de Usos": {
+      "H.200.A": {
+        "terreno_bruto_m2": 200,
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.200.B": {
+        "terreno_bruto_m2": 200,
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.300.A": {
+        "terreno_bruto_m2": 300,
+        "terreno_neto_m2": 180,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.333.A": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.333.B": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.417.A": {
+        "terreno_bruto_m2": 417,
+        "terreno_neto_m2": 250,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "H.500.A": {
+        "terreno_bruto_m2": 500,
+        "terreno_neto_m2": 300,
+        "porcentaje_max_desplante_cos": 60,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 1.8
+      }
+    },
+    "Pueblo Mágico": {
+      "PM.200.A": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      }
+    },
+    "Ciudad Típica de Metepec": {
+      "CTM.200.A": {
+        "terreno_bruto_m2": "NP",
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 60,
+        "niveles_max_construccion": 8,
+        "numero_veces_area_predio_cus": 4.8
+      }
+    },
+    "Centralidades Urbanas, Centros y Subcentros Urbanos": {
+      "CUE": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 75,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.3
+      },
+      "CUED": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 75,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.3
+      },
+      "CUT.333.A": {
+        "terreno_bruto_m2": "NP",
+        "terreno_neto_m2": 500,
+        "porcentaje_max_desplante_cos": 75,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.8
+      },
+      "SCUM": {
+        "terreno_bruto_m2": 500,
+        "terreno_neto_m2": 500,
+        "porcentaje_max_desplante_cos": 75,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.8
+      }
+    },
+    "Corredores Urbanos": {
+      "CRU.150.A (CRU 3/30)": {
+        "terreno_bruto_m2": 150,
+        "terreno_neto_m2": 90,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 2.1
+      },
+      "CR (CRM 5/30)": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.5
+      },
+      "CRU.333.A (CRU 4/20)": {
+        "terreno_bruto_m2": 333,
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 80,
+        "niveles_max_construccion": 4,
+        "numero_veces_area_predio_cus": 3.2
+      },
+      "CRU.CTM.200.A": {
+        "terreno_bruto_m2": "NP",
+        "terreno_neto_m2": 200,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 8,
+        "numero_veces_area_predio_cus": 5.6
+      }
+    }
+  }, 
+    "Toluca": {
+    "Habitacional": {
+      "H.100.A": {
+        "terreno_bruto_m2": 100,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 80,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 4.0
+      },
+      "H.200.A": {
+        "terreno_bruto_m2": 200,
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.5
+      },
+      "H.250.A": {
+        "terreno_bruto_m2": 250,
+        "terreno_neto_m2": 150,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.5
+      },
+      "H.300.A": {
+        "terreno_bruto_m2": 300,
+        "terreno_neto_m2": 180,
+        "porcentaje_max_desplante_cos": 60,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.0
+      },
+      "H.417.A": {
+        "terreno_bruto_m2": 417,
+        "terreno_neto_m2": 250,
+        "porcentaje_max_desplante_cos": 60,
+        "niveles_max_construccion": 3,
+        "numero_veces_area_predio_cus": 1.8
+      },
+      "H.500.A": {
+        "terreno_bruto_m2": 500,
+        "terreno_neto_m2": 300,
+        "porcentaje_max_desplante_cos": 40,
+        "niveles_max_construccion": 2,
+        "numero_veces_area_predio_cus": 0.8
+      }
+    },
+    "Centros Urbanos": {
+      "CU.200.A": {
+        "terreno_bruto_m2": 200,
+        "terreno_neto_m2": 120,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.5
+      },
+      "CU.300.A": {
+        "terreno_bruto_m2": 300,
+        "terreno_neto_m2": 180,
+        "porcentaje_max_desplante_cos": 60,
+        "niveles_max_construccion": 5,
+        "numero_veces_area_predio_cus": 3.0
+      },
+      "CU.A": {
+        "terreno_bruto_m2": "NP",
+        "terreno_neto_m2": "NP",
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": "DT",
+        "numero_veces_area_predio_cus": "DT"
+      }
+    },
+    "Corredores Urbanos": {
+      "CRU.A/60.V": {
+        "terreno_bruto_m2": 250,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 80,
+        "niveles_max_construccion": 20,
+        "numero_veces_area_predio_cus": 16.0
+      },
+      "CRU.A.I": {
+        "terreno_bruto_m2": 250,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 12,
+        "numero_veces_area_predio_cus": 8.4
+      },
+      "CRU.C": {
+        "terreno_bruto_m2": 250,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 15,
+        "numero_veces_area_predio_cus": 10.5
+      },
+      "CRU.D": {
+        "terreno_bruto_m2": 250,
+        "terreno_neto_m2": 60,
+        "porcentaje_max_desplante_cos": 70,
+        "niveles_max_construccion": 12,
+        "numero_veces_area_predio_cus": 8.4
+      }
+    },
+    "Áreas No Urbanizables": {
+      "AG-MP": {
+        "terreno_bruto_m2": 8333,
+        "terreno_neto_m2": 5000,
+        "porcentaje_max_desplante_cos": 5,
+        "niveles_max_construccion": 1,
+        "numero_veces_area_predio_cus": 0.05
+      }
+    }
+  }
+}
