@@ -1,0 +1,8 @@
+langchain-huggingface
+langchain-community
+faiss-cpu
+sentence-transformers
+pandas
+geopy
+streamlit
+utm
