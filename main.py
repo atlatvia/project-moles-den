@@ -3,7 +3,10 @@ import json
 import math
 import pandas as pd
 from geopy.geocoders import Nominatim
-import utm  # For conversion of UTM coordinates to Lat/Lon
+import utm
+import folium
+from folium.plugins import Draw
+from streamlit_folium import st_folium
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
@@ -59,6 +62,44 @@ def obtener_centroide_municipio(municipio):
 USOS_SUELO_EDOMEX = cargar_bases_datos()
 
 # ---------------------------------------------------
+# HELPER: Calculate Area from Drawn Polygon using UTM
+# ---------------------------------------------------
+def calcular_area_poligono(coordinates):
+    """
+    Takes a list of [[lon, lat], [lon, lat], ...] from GeoJSON,
+    converts them to UTM Zone 14N (Edomex), and calculates area via Shoelace formula.
+    """
+    puntos_utm = []
+    for lon, lat in coordinates:
+        try:
+            # Force Zone 14N to maintain plane consistency across the local plot
+            x, y, _, _ = utm.from_latlon(lat, lon, force_zone_number=14, force_zone_letter='N')
+            puntos_utm.append((x, y))
+        except Exception:
+            return 0.0
+
+    # Gauss / Shoelace Area Formula
+    n = len(puntos_utm)
+    if n < 3:
+        return 0.0
+    
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += puntos_utm[i][0] * puntos_utm[j][1]
+        area -= puntos_utm[j][0] * puntos_utm[i][1]
+    
+    return abs(area) / 2.0
+
+# ---------------------------------------------------
+# INITIALIZE SESSION STATES FOR DRAWING LOGIC
+# ---------------------------------------------------
+if "area_dibujada" not in st.session_state:
+    st.session_state.area_dibujada = 0.0
+if "usar_mapa" not in st.session_state:
+    st.session_state.usar_mapa = False
+
+# ---------------------------------------------------
 # 2. SIDEBAR INTERFACE (INPUTS & COORDINATE RESOLUTION)
 # ---------------------------------------------------
 st.sidebar.markdown(
@@ -82,8 +123,33 @@ categoria_sel = st.sidebar.selectbox("🏙️ Categoría de Uso", categorias_dis
 claves_disp = list(USOS_SUELO_EDOMEX[municipio_sel][categoria_sel].keys())
 uso_sel = st.sidebar.selectbox("🏷️ Clave de Uso de Suelo", claves_disp)
 
-area_terreno = st.sidebar.number_input("📏 Área del Terreno (m²)", min_value=1.0, value=300.0, step=50.0)
+if st.session_state.area_dibujada > 0:
+    st.sidebar.info(f"📐 Área calculada en mapa: {st.session_state.area_dibujada:,.2f} m²")
+    st.session_state.usar_mapa = st.sidebar.checkbox("Usar la medida del mapa", value=st.session_state.usar_mapa)
+else:
+    st.session_state.usar_mapa = False
+
+# Set default value based on layout choice
+def_value = st.session_state.area_dibujada if st.session_state.usar_mapa else 300.0
+
+area_terreno = st.sidebar.number_input(
+    "📏 Área del Terreno (m²)", 
+    min_value=1.0, 
+    value=float(def_value), 
+    step=50.0,
+    key="area_input_manual" if not st.session_state.usar_mapa else None
+)
 niveles_proyectados = st.sidebar.number_input("🏢 Niveles a Construir", min_value=1, value=2, step=1)
+
+# Coordinate resolutions for base centering
+st.sidebar.markdown("---")
+tipo_coordenada = st.sidebar.radio("Centrar mapa por:", ["Centroide Municipal", "Geográficas", "UTM"])
+map_lat, map_lon = 19.35, -99.65
+zoom_level = 11
+
+if tipo_coordenada == "Centroide Municipal":
+    map_lat, map_lon = obtener_centroide_municipio(municipio_sel)
+    zoom_level = 12
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🗺️ Ubicación Específica del Predio")
@@ -130,13 +196,47 @@ col_calc, col_legal = st.columns([2, 1])
 
 with col_calc:
     st.subheader(f"Ubicación Analizada: {municipio_sel}")
+    st.caption("💡 Usa la herramienta de polígono (⬡) en la barra izquierda del mapa para dibujar los límites de tu terreno.")
+
+    folium_map = folium.Map(location=[map_lat, map_lon], zoom_start=zoom_level, control_scale=True)
+
+    draw_plugin = Draw(
+        export=False,
+        filename='plot_geometry.geojson',
+        position='topleft',
+        draw_options={
+            'polyline': False,
+            'circle': False,
+            'rectangle': True,
+            'polygon': True,
+            'marker': False,
+            'circlemarker': False
+        },
+        edit_options={'remove': True}
+    )
+    draw_plugin.add_to(folium_map)
+
+    map_output = st_folium(folium_map, width="100%", height=400, key="interactive_drawing_map")
+
+    if map_output and map_output.get("last_active_drawing"):
+        drawing_geometry = map_output["last_active_drawing"]["geometry"]
+        if drawing_geometry["type"] == "Polygon":
+            # GeoJSON polygons wrap coordinates in a nested list
+            polygon_coords = drawing_geometry["coordinates"][0]
+            calculated_meters = calcular_area_poligono(polygon_coords)
+            
+            # If the calculation changes, update session state and trigger rerun
+            if calculated_meters != st.session_state.area_dibujada:
+                st.session_state.area_dibujada = round(calculated_meters, 2)
+                st.session_state.usar_mapa = True # Autofill preference activation
+                st.rerun()
     
     # Generate interactive map view with variable street zoom capabilities
     df_mapa = pd.DataFrame({'lat': [map_lat], 'lon': [map_lon]})
     st.map(df_mapa, zoom=zoom_level, use_container_width=True)
 
     st.markdown('<div class="glass-container">', unsafe_allow_html=True)
-    st.subheader(f"📊 Análisis Normativo: {uso_sel} ({categoria_sel})")
+    st.subheader(f"📊 Análisis Normativo utilizando: {area_terreno:,.2f} m²")
     
     t_bruto = regla.get("terreno_bruto_m2", "NP")
     cos_porc = regla.get("porcentaje_max_desplante_cos", "NP")
